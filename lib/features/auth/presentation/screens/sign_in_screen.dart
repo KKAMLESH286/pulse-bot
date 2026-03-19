@@ -48,11 +48,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
             children: [
               // Logo
               Container(
-                    width: 120,
-                    height: 120,
                     decoration: BoxDecoration(
-                      gradient: AppTheme.primaryGradient,
-                      borderRadius: BorderRadius.circular(32),
                       boxShadow: [
                         BoxShadow(
                           color: AppTheme.primaryGreen.withValues(alpha: 0.3),
@@ -61,10 +57,13 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.fitness_center,
-                      size: 56,
-                      color: Colors.white,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(32),
+                      child: Image.asset(
+                        'assets/images/app_icon.png',
+                        width: 120,
+                        height: 120,
+                      ),
                     ),
                   )
                   .animate()

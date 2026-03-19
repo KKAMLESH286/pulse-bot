@@ -48,7 +48,10 @@ export function workoutToText(data: Record<string, unknown>): string {
  * generate a 768-dim embedding via Vertex AI and write it back to the document.
  */
 export const onWorkoutCreated = onDocumentCreated(
-  { document: "users/{userId}/workouts/{workoutId}" },
+  {
+    document: "users/{userId}/workouts/{workoutId}",
+    memory: "512MiB",
+  },
   async (event) => {
     const snap = event.data;
     if (!snap) return;

@@ -27,17 +27,12 @@ class MessageBubble extends StatelessWidget {
           if (!isUser)
             Padding(
               padding: const EdgeInsets.only(right: 8),
-              child: Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  gradient: AppTheme.primaryGradient,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.fitness_center,
-                  size: 16,
-                  color: Colors.white,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.asset(
+                  'assets/images/app_icon.png',
+                  width: 32,
+                  height: 32,
                 ),
               ),
             ),

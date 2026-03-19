@@ -23,14 +23,13 @@ class SessionTile extends StatelessWidget {
           child: Row(
             children: [
               // Type-colored icon
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: typeStyle.color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(14),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Image.asset(
+                  'assets/images/app_icon.png',
+                  width: 48,
+                  height: 48,
                 ),
-                child: Icon(typeStyle.icon, color: typeStyle.color),
               ),
               const SizedBox(width: 14),
               // Title + exercises

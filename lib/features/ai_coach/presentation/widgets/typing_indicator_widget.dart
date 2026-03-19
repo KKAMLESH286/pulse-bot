@@ -37,18 +37,15 @@ class _TypingIndicatorState extends State<TypingIndicator>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 32,
-            height: 32,
-            margin: const EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(
-              gradient: AppTheme.primaryGradient,
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ClipRRect(
               borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.fitness_center,
-              size: 16,
-              color: Colors.white,
+              child: Image.asset(
+                'assets/images/app_icon.png',
+                width: 32,
+                height: 32,
+              ),
             ),
           ),
           Container(

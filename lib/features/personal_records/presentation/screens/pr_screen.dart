@@ -91,7 +91,7 @@ class PRScreen extends ConsumerWidget {
                                           ),
                                       const SizedBox(height: 8),
                                       Text(
-                                        pr.exerciseName.replaceAll('_', ' '),
+                                        _titleCase(pr.exerciseName),
                                         style: theme.textTheme.titleSmall,
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
@@ -137,5 +137,16 @@ class PRScreen extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  String _titleCase(String text) {
+    return text
+        .replaceAll('_', ' ')
+        .split(' ')
+        .map((word) {
+          if (word.isEmpty) return word;
+          return word[0].toUpperCase() + word.substring(1).toLowerCase();
+        })
+        .join(' ');
   }
 }

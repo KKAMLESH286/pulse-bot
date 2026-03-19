@@ -112,17 +112,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           // Bot avatar with online indicator
           Stack(
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  gradient: AppTheme.primaryGradient,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.fitness_center,
-                  size: 18,
-                  color: Colors.white,
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.asset(
+                  'assets/images/app_icon.png',
+                  width: 36,
+                  height: 36,
                 ),
               ),
               Positioned(
@@ -162,13 +157,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Gradient bot avatar
+            // Bot logo
             Container(
-                  width: 80,
-                  height: 80,
                   decoration: BoxDecoration(
-                    gradient: AppTheme.primaryGradient,
-                    borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
                         color: AppTheme.primaryGreen.withValues(alpha: 0.2),
@@ -176,10 +167,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       ),
                     ],
                   ),
-                  child: const Icon(
-                    Icons.fitness_center,
-                    size: 40,
-                    color: Colors.white,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.asset(
+                      'assets/images/app_icon.png',
+                      width: 80,
+                      height: 80,
+                    ),
                   ),
                 )
                 .animate()
