@@ -1,0 +1,37 @@
+{
+    "env": {
+        "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+    },
+    "hooks": {
+        "UserPromptSubmit": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": ".claude/hooks/skill-forced-eval-hook.sh"
+                    }
+                ]
+            }
+        ],
+        "Stop": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "flutter analyze"
+                    }
+                ]
+            }
+        ],
+        "PostToolUse": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "dart format --set-exit-if-changed ."
+                    }
+                ]
+            }
+        ]
+    }
+}

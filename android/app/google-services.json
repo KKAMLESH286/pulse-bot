@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "263697899480",
+    "project_id": "gain-bot-4df1d",
+    "storage_bucket": "gain-bot-4df1d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:263697899480:android:dfa0ddda06c70ff3c41cad",
+        "android_client_info": {
+          "package_name": "com.example.track_me"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "263697899480-ra0lt5k3crlq53rgih381jtnd33eas9d.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.track_me",
+            "certificate_hash": "a6ae577dca5d86a6f3099aa9b7bc53e894283272"
+          }
+        },
+        {
+          "client_id": "263697899480-hhpjq5bo5koc5q9ttuqun7n844p9d8pv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDDF-PzL7j2fcMxCFfcE5nKHJTpGuOGJJQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "263697899480-5kf6vb49ahn27eliounfraqic5v9ruje.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "263697899480-oaefojdborll09b5gdu7f685id5r0mbr.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.trackMe"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

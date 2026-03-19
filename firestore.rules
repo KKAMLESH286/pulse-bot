@@ -1,0 +1,32 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+
+      match /messages/{messageId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        // Users can only create messages with role "user"
+        allow create: if request.auth != null
+                      && request.auth.uid == userId
+                      && request.resource.data.role == 'user';
+      }
+
+      match /workout_logs/{logId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        // Only Cloud Functions (admin SDK) can write workout logs
+      }
+
+      match /prs/{prId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        // Only Cloud Functions (admin SDK) can write PRs
+      }
+
+      match /agent_config/{configId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+  }
+}
