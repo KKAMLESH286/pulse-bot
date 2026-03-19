@@ -16,22 +16,7 @@ class ChatScreen extends ConsumerStatefulWidget {
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _scrollController = ScrollController();
 
-  void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (_scrollController.hasClients) {
-          _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          );
-        }
-      });
-    }
-  }
-
   Future<void> _sendMessage(String text) async {
-    _scrollToBottom();
     final success = await ref.read(coachProvider.notifier).sendMessage(text);
     if (!success && mounted) {
       ScaffoldMessenger.of(
@@ -94,24 +79,24 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     );
                   }
 
-                  WidgetsBinding.instance.addPostFrameCallback(
-                    (_) => _scrollToBottom(),
-                  );
+                  final itemCount =
+                      messages.length + (isProcessing || isSending ? 1 : 0);
 
                   return ListView.builder(
                     controller: _scrollController,
+                    reverse: true,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 8,
                     ),
-                    itemCount:
-                        messages.length + (isProcessing || isSending ? 1 : 0),
+                    itemCount: itemCount,
                     itemBuilder: (context, index) {
-                      if (index == messages.length &&
+                      final reversedIndex = itemCount - 1 - index;
+                      if (reversedIndex == messages.length &&
                           (isProcessing || isSending)) {
                         return const TypingIndicator();
                       }
-                      return MessageBubble(message: messages[index]);
+                      return MessageBubble(message: messages[reversedIndex]);
                     },
                   );
                 },

@@ -25,35 +25,56 @@ final appRouter = GoRouter(
       path: RouteNames.signIn,
       builder: (context, state) => const SignInScreen(),
     ),
-    ShellRoute(
-      builder: (context, state, child) => ScaffoldWithNav(child: child),
-      routes: [
-        GoRoute(
-          path: RouteNames.chat,
-          builder: (context, state) => const ChatScreen(),
-        ),
-        GoRoute(
-          path: RouteNames.history,
-          builder: (context, state) => const HistoryScreen(),
+    StatefulShellRoute.indexedStack(
+      builder: (context, state, navigationShell) =>
+          ScaffoldWithNav(navigationShell: navigationShell),
+      branches: [
+        StatefulShellBranch(
           routes: [
             GoRoute(
-              path: ':date',
-              builder: (context, state) =>
-                  WorkoutDetailScreen(date: state.pathParameters['date']!),
+              path: RouteNames.chat,
+              builder: (context, state) => const ChatScreen(),
             ),
           ],
         ),
-        GoRoute(
-          path: RouteNames.prs,
-          builder: (context, state) => const PRScreen(),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: RouteNames.history,
+              builder: (context, state) => const HistoryScreen(),
+              routes: [
+                GoRoute(
+                  path: ':date',
+                  builder: (context, state) =>
+                      WorkoutDetailScreen(date: state.pathParameters['date']!),
+                ),
+              ],
+            ),
+          ],
         ),
-        GoRoute(
-          path: RouteNames.program,
-          builder: (context, state) => const ProgramScreen(),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: RouteNames.prs,
+              builder: (context, state) => const PRScreen(),
+            ),
+          ],
         ),
-        GoRoute(
-          path: RouteNames.profile,
-          builder: (context, state) => const ProfileScreen(),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: RouteNames.program,
+              builder: (context, state) => const ProgramScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: RouteNames.profile,
+              builder: (context, state) => const ProfileScreen(),
+            ),
+          ],
         ),
       ],
     ),

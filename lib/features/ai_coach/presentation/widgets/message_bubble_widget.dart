@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 import 'package:track_me/features/ai_coach/data/models/chat_message_model.dart';
@@ -57,10 +58,23 @@ class MessageBubble extends StatelessWidget {
                         bottomRight: Radius.circular(isUser ? 4 : 16),
                       ),
                     ),
-                    child: Text(
-                      message.text,
-                      style: const TextStyle(fontSize: 15, height: 1.4),
-                    ),
+                    child: isUser
+                        ? Text(
+                            message.text,
+                            style: const TextStyle(fontSize: 15, height: 1.4),
+                          )
+                        : MarkdownBody(
+                            data: message.text,
+                            selectable: true,
+                            styleSheet: MarkdownStyleSheet(
+                              p: const TextStyle(fontSize: 15, height: 1.4),
+                              strong: const TextStyle(
+                                fontSize: 15,
+                                height: 1.4,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                   ),
                   if (message.hasWorkoutData)
                     Padding(

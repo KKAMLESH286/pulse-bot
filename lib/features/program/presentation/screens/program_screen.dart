@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/program_provider.dart';
@@ -30,9 +31,10 @@ class ProgramScreen extends ConsumerWidget {
                 );
               }
 
-              return SingleChildScrollView(
+              return Markdown(
+                data: content,
                 padding: const EdgeInsets.all(16),
-                child: SizedBox(width: double.infinity, child: Text(content)),
+                selectable: true,
               );
             },
           ),
