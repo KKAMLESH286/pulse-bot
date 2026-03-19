@@ -3,15 +3,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.anthropicSetupToken = void 0;
+exports.callClaudeWithTools = callClaudeWithTools;
 exports.callClaude = callClaude;
 const sdk_1 = __importDefault(require("@anthropic-ai/sdk"));
 const params_1 = require("firebase-functions/params");
-const anthropicSetupToken = (0, params_1.defineSecret)("ANTHROPIC_SETUP_TOKEN");
-async function callClaude(systemPrompt, messages) {
-    const token = anthropicSetupToken.value();
-    // OAuth setup tokens require Claude Code identity headers
-    // See: pi-ai v0.58.0 providers/anthropic.js createClient()
-    const client = new sdk_1.default({
+exports.anthropicSetupToken = (0, params_1.defineSecret)("ANTHROPIC_SETUP_TOKEN");
+function createClient() {
+    const token = exports.anthropicSetupToken.value();
+    return new sdk_1.default({
         apiKey: null,
         authToken: token,
         defaultHeaders: {
@@ -20,10 +20,15 @@ async function callClaude(systemPrompt, messages) {
             "x-app": "cli",
         },
     });
-    // OAuth tokens require the Claude Code identity as the first system block
-    const response = await client.messages.create({
+}
+/**
+ * Call Claude with tools. Returns the full response (may contain tool_use blocks).
+ */
+async function callClaudeWithTools(systemPrompt, messages, tools) {
+    const client = createClient();
+    return client.messages.create({
         model: "claude-sonnet-4-6",
-        max_tokens: 1024,
+        max_tokens: 2048,
         system: [
             {
                 type: "text",
@@ -36,8 +41,15 @@ async function callClaude(systemPrompt, messages) {
                 cache_control: { type: "ephemeral" },
             },
         ],
-        messages: messages,
+        messages,
+        tools,
     });
+}
+/**
+ * Legacy: Call Claude without tools (simple text response).
+ */
+async function callClaude(systemPrompt, messages) {
+    const response = await callClaudeWithTools(systemPrompt, messages, []);
     const textBlock = response.content.find((block) => block.type === "text");
     return textBlock ? textBlock.text : "I couldn't generate a response.";
 }

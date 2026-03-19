@@ -23,12 +23,13 @@ This project uses **Riverpod 3.x** with code generation for both state managemen
 ├─────────────────────────────────────────────────────────────┤
 │                     DATASOURCES                              │
 │  @riverpod functional providers                             │
-│  - API calls via Dio                                        │
+│  - Firestore queries (most features)                        │
+│  - Cloud Function calls (ai_coach)                          │
 │  - Return model DTOs directly                               │
 ├─────────────────────────────────────────────────────────────┤
 │                    CORE PROVIDERS                            │
 │  @Riverpod(keepAlive: true)                                 │
-│  - Dio, SecureStorage, AuthService                          │
+│  - AuthService, FirebaseFirestore                           │
 │  - Singleton-like providers                                 │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -36,63 +37,84 @@ This project uses **Riverpod 3.x** with code generation for both state managemen
 ## Core Providers (Dependency Injection)
 
 ### Location
-Core providers live in `lib/core/` (e.g., `lib/core/network/dio_client.dart`).
+Core providers live in `lib/core/` or `lib/features/auth/presentation/providers/`.
 
 ### Pattern
 ```dart
-import 'package:dio/dio.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+// lib/features/auth/presentation/providers/auth_provider.dart
 
-part 'dio_client.g.dart';
+part 'auth_provider.g.dart';
 
-/// Dio HTTP client with auth interceptor
+/// Auth service — singleton, persists across navigation
 @Riverpod(keepAlive: true)
-Dio dio(Ref ref) {
-  final secureStorage = ref.watch(secureStorageProvider);
+AuthService authService(Ref ref) {
+  return AuthService();
+}
 
-  final dio = Dio(BaseOptions(
-    baseUrl: AppConfig.backendUrl,
-    connectTimeout: const Duration(seconds: 30),
-    receiveTimeout: const Duration(seconds: 30),
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
-  ));
+/// Auth state stream — singleton, persists across navigation
+@Riverpod(keepAlive: true)
+Stream<User?> authState(Ref ref) {
+  return FirebaseAuth.instance.authStateChanges();
+}
 
-  dio.interceptors.add(WalletAuthInterceptor(secureStorage));
-  return dio;
+/// Current user — derived from auth state
+@riverpod
+User? currentUser(Ref ref) {
+  return ref.watch(authStateProvider).value;
 }
 ```
 
 ## Datasource Pattern
 
-### Location
-`lib/features/{feature}/data/datasources/{feature}_remote_datasource.dart`
-
-### Pattern
+### Firestore Datasource (most features)
 ```dart
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+// lib/features/{feature}/data/datasources/{feature}_remote_datasource.dart
 
 part '{feature}_remote_datasource.g.dart';
 
-/// Riverpod provider for datasource
 @riverpod
 {Feature}RemoteDatasource {feature}RemoteDatasource(Ref ref) {
-  return {Feature}RemoteDatasource(ref.watch(dioProvider));
+  return {Feature}RemoteDatasource(FirebaseFirestore.instance);
 }
 
-/// Datasource class for API calls
 class {Feature}RemoteDatasource {
-  {Feature}RemoteDatasource(this._dio);
+  {Feature}RemoteDatasource(this._firestore);
+  final FirebaseFirestore _firestore;
 
-  final Dio _dio;
+  Stream<List<{Model}>> watchAll(String userId) {
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('{collection}')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((doc) => {Model}.fromFirestore(doc))
+            .toList());
+  }
+}
+```
 
-  Future<List<{Model}>> fetchAll() async {
-    final response = await _dio.get('/api/{feature}');
-    return (response.data as List)
-        .map((json) => {Model}.fromJson(json as Map<String, dynamic>))
-        .toList();
+### Cloud Function Datasource (ai_coach only)
+```dart
+// lib/features/ai_coach/data/datasources/coach_remote_datasource.dart
+
+@riverpod
+CoachRemoteDatasource coachRemoteDatasource(Ref ref) {
+  return CoachRemoteDatasource(FirebaseFunctions.instance);
+}
+
+class CoachRemoteDatasource {
+  CoachRemoteDatasource(this._functions);
+  final FirebaseFunctions _functions;
+
+  Future<Map<String, dynamic>> sendMessage(String userId, String text) async {
+    final callable = _functions.httpsCallable('chat');
+    final result = await callable.call<Map<String, dynamic>>({
+      'userId': userId,
+      'message': text,
+    });
+    return result.data;
   }
 }
 ```
@@ -100,31 +122,32 @@ class {Feature}RemoteDatasource {
 ## Repository Pattern
 
 ### Location
-- Interface: `lib/features/{feature}/domain/repositories/{feature}_repository.dart`
+- Interface: `lib/features/{feature}/domain/repositories/i_{feature}_repository.dart`
 - Implementation: `lib/features/{feature}/data/repositories/{feature}_repository_impl.dart`
 
 ### Pattern
 ```dart
 // Domain interface
-abstract class {Feature}Repository {
-  Future<List<{Entity}>> getAll();
-  Future<{Entity}> getById(String id);
+abstract class I{Feature}Repository {
+  Stream<List<{Entity}>> watchAll(String userId);
+  Future<{Entity}> getById(String userId, String id);
 }
 
-// Data implementation
+// Data implementation + provider
 @riverpod
-{Feature}Repository {feature}Repository(Ref ref) {
+I{Feature}Repository {feature}Repository(Ref ref) {
   return {Feature}RepositoryImpl(ref.watch({feature}RemoteDatasourceProvider));
 }
 
-class {Feature}RepositoryImpl implements {Feature}Repository {
+class {Feature}RepositoryImpl implements I{Feature}Repository {
   {Feature}RepositoryImpl(this._datasource);
   final {Feature}RemoteDatasource _datasource;
 
   @override
-  Future<List<{Entity}>> getAll() async {
-    final models = await _datasource.fetchAll();
-    return models.map((m) => m.toEntity()).toList();
+  Stream<List<{Entity}>> watchAll(String userId) {
+    return _datasource.watchAll(userId).map(
+      (models) => models.map((m) => m.toEntity()).toList(),
+    );
   }
 }
 ```
@@ -134,8 +157,6 @@ class {Feature}RepositoryImpl implements {Feature}Repository {
 ### UI State with Freezed
 ```dart
 // lib/features/{feature}/presentation/providers/{feature}_state.dart
-
-import 'package:freezed_annotation/freezed_annotation.dart';
 
 part '{feature}_state.freezed.dart';
 
@@ -160,11 +181,6 @@ abstract class {Feature}State with _${Feature}State {
 ```dart
 // lib/features/{feature}/presentation/providers/{feature}_provider.dart
 
-import 'package:riverpod_annotation/riverpod_annotation.dart';
-
-import '../../domain/repositories/{feature}_repository.dart';
-import '{feature}_state.dart';
-
 part '{feature}_provider.g.dart';
 
 @riverpod
@@ -178,25 +194,14 @@ class {Feature}Notifier extends _${Feature}Notifier {
     // ALWAYS use state.value with fallback (Riverpod 3.x)
     final current = state.value ?? const {Feature}State();
 
-    state = AsyncData(current.copyWith(
-      isLoading: true,
-      error: null,
-    ));
+    state = AsyncData(current.copyWith(isLoading: true, error: null));
 
     try {
-      // Use ref.read() for repositories
       final data = await ref.read({feature}RepositoryProvider).getAll();
-
-      state = AsyncData(current.copyWith(
-        data: data,
-        isLoading: false,
-      ));
+      state = AsyncData(current.copyWith(data: data, isLoading: false));
       return true;
     } catch (e) {
-      state = AsyncData(current.copyWith(
-        error: e.toString(),
-        isLoading: false,
-      ));
+      state = AsyncData(current.copyWith(error: e.toString(), isLoading: false));
       return false;
     }
   }
@@ -210,6 +215,18 @@ class {Feature}Notifier extends _${Feature}Notifier {
 }
 ```
 
+### Stream-Based Providers (for Firestore real-time data)
+
+```dart
+// For features that use Firestore streams (workout history, PRs, messages)
+@riverpod
+Stream<List<{Entity}>> {feature}Stream(Ref ref) {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return Stream.value([]);
+  return ref.watch({feature}RepositoryProvider).watchAll(user.uid);
+}
+```
+
 ### Provider Rules
 
 #### DO:
@@ -220,7 +237,7 @@ final current = state.value ?? const {Feature}State();
 // Return bool for UI feedback
 Future<bool> doAction() async { ... return true/false; }
 
-// Use ref.read() for repositories/datasources
+// Use ref.read() for repositories/datasources in action methods
 final repository = ref.read({feature}RepositoryProvider);
 
 // Clear errors before new operations
@@ -237,12 +254,14 @@ final current = state.valueOrNull ?? const {Feature}State();  // WRONG
 
 // Don't return void - use bool for feedback
 Future<void> doAction() async { }  // WRONG
+
+// Don't access Firestore directly in providers
+final snap = await FirebaseFirestore.instance.collection('users').get();  // WRONG
 ```
 
 ## Screen Integration
 
 ### ConsumerStatefulWidget Pattern
-
 ```dart
 class {Feature}Screen extends ConsumerStatefulWidget {
   const {Feature}Screen({super.key});
@@ -258,24 +277,6 @@ class _{Feature}ScreenState extends ConsumerState<{Feature}Screen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read({feature}NotifierProvider.notifier).fetchData();
     });
-  }
-
-  Future<void> _handleAction() async {
-    final success = await ref.read({feature}NotifierProvider.notifier).doAction();
-    if (success && mounted) {
-      context.go(RouteNames.nextScreen);
-    } else {
-      _showError();
-    }
-  }
-
-  void _showError() {
-    final state = ref.read({feature}NotifierProvider);
-    if (state.value?.hasError == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(state.value!.error!)),
-      );
-    }
   }
 
   @override
@@ -294,7 +295,6 @@ class _{Feature}ScreenState extends ConsumerState<{Feature}Screen> {
 ```
 
 ### ConsumerWidget Pattern (Stateless)
-
 ```dart
 class {Widget}Widget extends ConsumerWidget {
   const {Widget}Widget({super.key});
@@ -310,29 +310,6 @@ class {Widget}Widget extends ConsumerWidget {
     );
   }
 }
-```
-
-## Cross-Feature State Sharing
-
-### Via Core Services
-```dart
-// Access shared auth state from any provider
-@riverpod
-class DashboardNotifier extends _$DashboardNotifier {
-  @override
-  Future<DashboardState> build() async {
-    final authService = ref.read(authServiceProvider);
-    final wallet = authService.currentWallet;
-    return DashboardState(wallet: wallet);
-  }
-}
-```
-
-### Provider Invalidation for Refresh
-```dart
-// Invalidate providers to refresh data
-ref.invalidate({feature}RepositoryProvider);
-ref.invalidate({feature}NotifierProvider);
 ```
 
 ## Code Generation
@@ -351,8 +328,8 @@ dart run build_runner watch --delete-conflicting-outputs
 
 ## Best Practices Summary
 
-1. **Use Riverpod for everything** - both DI and state management
-2. **Use `@Riverpod(keepAlive: true)`** only for core infrastructure (Dio, SecureStorage, AuthService)
+1. **Use Riverpod for everything** — both DI and state management
+2. **Use `@Riverpod(keepAlive: true)`** only for core infrastructure (AuthService)
 3. **Use `@riverpod`** for all feature providers (notifiers, repositories, datasources)
 4. **Always use `state.value`** with fallback (Riverpod 3.x pattern)
 5. **Return `bool`** from action methods for UI feedback
@@ -361,3 +338,5 @@ dart run build_runner watch --delete-conflicting-outputs
 8. **Use `ref.read()`** for repositories in provider action methods
 9. **Use `ref.watch()`** in UI for reactive updates
 10. **Run build_runner** after adding/modifying providers
+11. **Use Stream providers** for Firestore real-time data
+12. **Never call Firestore directly** from screens or providers — go through datasource → repository

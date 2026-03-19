@@ -14,9 +14,14 @@ service cloud.firestore {
                       && request.resource.data.role == 'user';
       }
 
+      match /workouts/{workoutId} {
+        allow read, delete: if request.auth != null && request.auth.uid == userId;
+        // Only Cloud Functions (admin SDK) can create/update workouts
+      }
+
+      // Legacy collection — kept for read access during migration
       match /workout_logs/{logId} {
         allow read: if request.auth != null && request.auth.uid == userId;
-        // Only Cloud Functions (admin SDK) can write workout logs
       }
 
       match /prs/{prId} {

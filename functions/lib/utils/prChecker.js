@@ -35,7 +35,7 @@ async function checkAndUpdatePRs(db, userId, workoutData) {
                 await prDoc.update({
                     weight_kg: bestSet.weight_kg,
                     reps: bestSet.reps,
-                    date: new Date(),
+                    date: workoutData.date ? new Date(workoutData.date) : new Date(),
                     note: exercise.note || null,
                 });
             }
@@ -45,7 +45,7 @@ async function checkAndUpdatePRs(db, userId, workoutData) {
             await prDoc.set({
                 weight_kg: bestSet.weight_kg,
                 reps: bestSet.reps,
-                date: new Date(),
+                date: workoutData.date ? new Date(workoutData.date) : new Date(),
                 note: exercise.note || null,
             });
         }

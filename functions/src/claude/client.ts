@@ -1,22 +1,19 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { defineSecret } from "firebase-functions/params";
 
-const anthropicSetupToken = defineSecret("ANTHROPIC_SETUP_TOKEN");
+export const anthropicSetupToken = defineSecret("ANTHROPIC_SETUP_TOKEN");
 
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-}
+export type Message = Anthropic.MessageParam;
+export type Tool = Anthropic.Tool;
+export type ContentBlock = Anthropic.ContentBlock;
+export type ToolUseBlock = Anthropic.ToolUseBlock;
+export type TextBlock = Anthropic.TextBlock;
+export type ToolResultBlockParam = Anthropic.ToolResultBlockParam;
 
-export async function callClaude(
-  systemPrompt: string,
-  messages: Message[]
-): Promise<string> {
+function createClient(): Anthropic {
   const token = anthropicSetupToken.value();
 
-  // OAuth setup tokens require Claude Code identity headers
-  // See: pi-ai v0.58.0 providers/anthropic.js createClient()
-  const client = new Anthropic({
+  return new Anthropic({
     apiKey: null,
     authToken: token,
     defaultHeaders: {
@@ -26,11 +23,21 @@ export async function callClaude(
       "x-app": "cli",
     },
   });
+}
 
-  // OAuth tokens require the Claude Code identity as the first system block
-  const response = await client.messages.create({
+/**
+ * Call Claude with tools. Returns the full response (may contain tool_use blocks).
+ */
+export async function callClaudeWithTools(
+  systemPrompt: string,
+  messages: Message[],
+  tools: Tool[]
+): Promise<Anthropic.Message> {
+  const client = createClient();
+
+  return client.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 1024,
+    max_tokens: 2048,
     system: [
       {
         type: "text",
@@ -43,9 +50,22 @@ export async function callClaude(
         cache_control: { type: "ephemeral" },
       },
     ],
-    messages: messages,
+    messages,
+    tools,
   });
+}
 
-  const textBlock = response.content.find((block) => block.type === "text");
+/**
+ * Legacy: Call Claude without tools (simple text response).
+ */
+export async function callClaude(
+  systemPrompt: string,
+  messages: { role: "user" | "assistant"; content: string }[]
+): Promise<string> {
+  const response = await callClaudeWithTools(systemPrompt, messages, []);
+
+  const textBlock = response.content.find(
+    (block): block is TextBlock => block.type === "text"
+  );
   return textBlock ? textBlock.text : "I couldn't generate a response.";
 }

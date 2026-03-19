@@ -1,17 +1,19 @@
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
-import { defineSecret } from "firebase-functions/params";
 import { getFirestore } from "firebase-admin/firestore";
 import * as admin from "firebase-admin";
-import { callClaude } from "./claude/client";
+import { callClaude, anthropicSetupToken } from "./claude/client";
 import { assembleSystemPrompt } from "./claude/systemPrompt";
 import { parseWorkoutData } from "./parsers/workoutParser";
 import { checkAndUpdatePRs } from "./utils/prChecker";
-import { getMessagesRef, getWorkoutLogsRef } from "./utils/firestore";
+import { getMessagesRef, getWorkoutsRef } from "./utils/firestore";
 
-admin.initializeApp();
-
-const anthropicSetupToken = defineSecret("ANTHROPIC_SETUP_TOKEN");
-
+/**
+ * Legacy Firestore trigger: processes user messages via Claude.
+ * This is kept as a fallback while the new `chat` HTTP callable is being tested.
+ * Will be removed once the Flutter app is fully migrated to the HTTP callable.
+ *
+ * Now writes to individual `workouts/{id}` docs instead of `workout_logs/{date}`.
+ */
 export const onMessageCreated = onDocumentCreated(
   { document: "users/{userId}/messages/{messageId}", secrets: [anthropicSetupToken] },
   async (event) => {
@@ -25,20 +27,16 @@ export const onMessageCreated = onDocumentCreated(
     const db = getFirestore();
     const messagesRef = getMessagesRef(db, userId);
 
-    // Set status to processing
     await snap.ref.update({ status: "processing" });
 
     try {
-      // Get agent config
       const systemPrompt = await assembleSystemPrompt(db, userId);
 
-      // Get conversation history (last 50 messages)
       const historySnap = await messagesRef
         .orderBy("createdAt")
         .limitToLast(50)
         .get();
 
-      // Filter out messages with empty content and ensure alternating roles
       const rawMessages = historySnap.docs
         .map((doc) => {
           const d = doc.data();
@@ -49,7 +47,6 @@ export const onMessageCreated = onDocumentCreated(
         })
         .filter((m) => m.content.trim().length > 0);
 
-      // Ensure messages alternate roles (Claude API requirement)
       const messages: { role: "user" | "assistant"; content: string }[] = [];
       for (const msg of rawMessages) {
         if (messages.length === 0 || messages[messages.length - 1].role !== msg.role) {
@@ -57,43 +54,30 @@ export const onMessageCreated = onDocumentCreated(
         }
       }
 
-      // Ensure first message is from user
       while (messages.length > 0 && messages[0].role !== "user") {
         messages.shift();
       }
 
-      // Call Claude
       const response = await callClaude(systemPrompt, messages);
-
-      // Parse workout data from response
       const workoutData = parseWorkoutData(response);
 
-      // If workout data found, save to workout_logs and check PRs
+      // Save as individual workout document (new schema)
       if (workoutData) {
         const today = new Date().toISOString().split("T")[0];
         const targetDate = workoutData.date || today;
-        const workoutLogsRef = getWorkoutLogsRef(db, userId);
-        const targetDoc = workoutLogsRef.doc(targetDate);
-        const existing = await targetDoc.get();
+        const workoutsRef = getWorkoutsRef(db, userId);
 
-        if (existing.exists) {
-          // Append to existing day's workouts
-          const existingData = existing.data()!;
-          const workouts = existingData.workouts || [];
-          workouts.push(workoutData);
-          await targetDoc.update({ workouts });
-        } else {
-          await targetDoc.set({
-            date: targetDate,
-            workouts: [workoutData],
-          });
-        }
+        await workoutsRef.add({
+          date: targetDate,
+          type: workoutData.type,
+          ...(workoutData.day && { day: workoutData.day }),
+          exercises: workoutData.exercises,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
 
-        // Check and update PRs
         await checkAndUpdatePRs(db, userId, workoutData);
       }
 
-      // Write assistant message
       await messagesRef.add({
         role: "assistant",
         text: response,
@@ -102,12 +86,10 @@ export const onMessageCreated = onDocumentCreated(
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
-      // Mark original message as done
       await snap.ref.update({ status: "done" });
     } catch (error) {
       console.error("Error processing message:", error);
 
-      // Write error response
       await messagesRef.add({
         role: "assistant",
         text: "Sorry, I had trouble processing that. Please try again.",

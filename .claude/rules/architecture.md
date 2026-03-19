@@ -1,6 +1,6 @@
 # Architecture Rules: Feature-First Clean Architecture with Riverpod
 
-This project follows a **Feature-First Clean Architecture** pattern with Riverpod for state management and dependency injection.
+This project follows a **Feature-First Clean Architecture** pattern with Riverpod for state management and dependency injection. All AI processing happens server-side via Firebase Cloud Functions.
 
 ## Layer Overview
 
@@ -12,8 +12,8 @@ This project follows a **Feature-First Clean Architecture** pattern with Riverpo
 ├─────────────────────────────────────────────────────────────┤
 │                        CORE                                  │
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐       │
-│  │ Network  │ │ Storage  │ │ Routing  │ │  Theme   │       │
-│  │ (Dio)    │ │ (Secure) │ │(GoRouter)│ │          │       │
+│  │Firestore │ │Firebase  │ │ Routing  │ │  Theme   │       │
+│  │          │ │  Auth    │ │(GoRouter)│ │          │       │
 │  └──────────┘ └──────────┘ └──────────┘ └──────────┘       │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -42,81 +42,126 @@ Shared infrastructure used across all features.
 ```
 core/
 ├── config/
-│   └── app_config.dart          # Environment variables
+│   └── app_config.dart              # Environment variables
 ├── constants/
-│   └── tokens.dart              # Token definitions, chain constants
+│   └── firestore_constants.dart     # Collection names, status values, roles
 ├── routing/
-│   ├── app_router.dart          # GoRouter setup with auth redirects
-│   └── route_names.dart         # Route path constants
-├── network/
-│   ├── dio_client.dart          # Dio client assembly
-│   ├── exceptions.dart          # Typed exceptions (NetworkException, AuthException, Web3Exception)
-│   └── interceptors/
-│       ├── wallet_auth_interceptor.dart  # JWT injection from secure storage
-│       └── cex_auth_interceptor.dart     # CEX-specific auth headers
-├── storage/
-│   └── secure_storage_service.dart      # flutter_secure_storage wrapper
-├── services/
-│   ├── auth_service.dart
-│   └── api_service.dart
-├── theme/                       # Shared theme, colors, typography
-└── widgets/                     # Shared reusable UI components
+│   ├── app_router.dart              # GoRouter setup with auth redirects
+│   └── route_names.dart             # Route path constants
+├── errors/
+│   └── failure.dart                 # Sealed failure types (Server, Cache, Auth, Tool)
+├── theme/
+│   └── app_theme.dart               # Shared theme, colors, typography
+└── widgets/                         # Shared reusable UI components
 ```
 
 ### 2. Features (`lib/features/`)
 
-Each feature follows a layered structure. **Add layers only when complexity demands it** — simple display-only features don't need domain/data layers.
+Each feature follows a layered structure. **Add layers only when complexity demands it.**
 
 ```
 features/{feature}/
 ├── data/
-│   ├── models/                  # DTOs with freezed serialization
+│   ├── models/                      # DTOs with freezed serialization
 │   │   └── {name}_model.dart
-│   ├── datasources/             # Remote API calls + local cache
+│   ├── datasources/                 # Firestore queries / Cloud Function calls
 │   │   └── {feature}_remote_datasource.dart
-│   └── repositories/            # Repository implementations
+│   └── repositories/                # Repository implementations
 │       └── {feature}_repository_impl.dart
 ├── domain/
-│   ├── entities/                # Core business objects
+│   ├── entities/                    # Core business objects
 │   │   └── {name}.dart
-│   ├── repositories/            # Abstract repository interfaces
-│   │   └── {feature}_repository.dart
-│   └── usecases/                # Single-responsibility business logic (complex flows only)
+│   ├── repositories/                # Abstract repository interfaces
+│   │   └── i_{feature}_repository.dart
+│   └── usecases/                    # Complex flows only
 │       └── {usecase_name}.dart
 └── presentation/
-    ├── providers/               # Riverpod providers (StateNotifier, AsyncNotifier)
+    ├── providers/                   # Riverpod providers
     │   └── {feature}_provider.dart
     ├── screens/
     │   └── {feature}_screen.dart
-    └── widgets/                 # Feature-specific widgets
+    └── widgets/
         └── {widget_name}_widget.dart
+```
+
+### 3. Cloud Functions (`functions/src/`)
+
+All AI processing happens server-side. The Flutter app never calls Claude or Vertex AI directly.
+
+```
+functions/src/
+├── index.ts                         # Exports all functions
+├── chat/
+│   ├── chatHandler.ts               # HTTP callable: receives message, runs Claude tool loop
+│   ├── toolExecutor.ts              # Dispatches and executes Claude tool calls
+│   └── systemPrompt.ts             # Assembles system prompt from agent_config + user profile
+├── embeddings/
+│   └── embedWorkout.ts              # Firestore trigger: workout write → Vertex AI → vector
+├── claude/
+│   └── client.ts                    # Anthropic SDK client (OAuth setup token)
+├── parsers/
+│   └── workoutParser.ts             # Parse structured workout data
+└── utils/
+    ├── firestore.ts                 # Firestore reference helpers
+    └── prChecker.ts                 # Personal record update logic
 ```
 
 ## Component Patterns
 
-### Core Providers (Riverpod DI)
+### Datasource Pattern (Firestore)
 
-Core dependencies are provided via Riverpod:
+Most datasources interact with Firestore directly:
 
 ```dart
-// lib/core/network/dio_client.dart (or core providers file)
+// lib/features/{feature}/data/datasources/{feature}_remote_datasource.dart
 
-@Riverpod(keepAlive: true)
-Dio dio(Ref ref) {
-  final secureStorage = ref.watch(secureStorageProvider);
+@riverpod
+{Feature}RemoteDatasource {feature}RemoteDatasource(Ref ref) {
+  return {Feature}RemoteDatasource(FirebaseFirestore.instance);
+}
 
-  final dio = Dio(BaseOptions(
-    baseUrl: AppConfig.backendUrl,
-    connectTimeout: const Duration(seconds: 30),
-    receiveTimeout: const Duration(seconds: 30),
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
-  ));
+class {Feature}RemoteDatasource {
+  {Feature}RemoteDatasource(this._firestore);
+  final FirebaseFirestore _firestore;
 
-  dio.interceptors.add(WalletAuthInterceptor(secureStorage));
-  return dio;
+  Stream<List<{Model}>> watchAll(String userId) {
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('{collection}')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((doc) => {Model}.fromFirestore(doc))
+            .toList());
+  }
+}
+```
+
+### Datasource Pattern (Cloud Function Call)
+
+The `ai_coach` datasource calls a Cloud Function HTTP endpoint:
+
+```dart
+// lib/features/ai_coach/data/datasources/coach_remote_datasource.dart
+
+@riverpod
+CoachRemoteDatasource coachRemoteDatasource(Ref ref) {
+  return CoachRemoteDatasource(FirebaseFunctions.instance);
+}
+
+class CoachRemoteDatasource {
+  CoachRemoteDatasource(this._functions);
+  final FirebaseFunctions _functions;
+
+  Future<ChatMessageModel> sendMessage(String userId, String text) async {
+    final callable = _functions.httpsCallable('chat');
+    final result = await callable.call<Map<String, dynamic>>({
+      'userId': userId,
+      'message': text,
+    });
+    return ChatMessageModel.fromJson(result.data);
+  }
 }
 ```
 
@@ -124,192 +169,174 @@ Dio dio(Ref ref) {
 
 ```dart
 // Domain layer: abstract interface
-// lib/features/{feature}/domain/repositories/{feature}_repository.dart
+// lib/features/{feature}/domain/repositories/i_{feature}_repository.dart
 
-abstract class {Feature}Repository {
-  Future<List<{Entity}>> getAll();
-  Future<{Entity}> getById(String id);
+abstract class I{Feature}Repository {
+  Stream<List<{Entity}>> watchAll(String userId);
+  Future<{Entity}> getById(String userId, String id);
 }
 
 // Data layer: implementation
 // lib/features/{feature}/data/repositories/{feature}_repository_impl.dart
 
-class {Feature}RepositoryImpl implements {Feature}Repository {
+@riverpod
+I{Feature}Repository {feature}Repository(Ref ref) {
+  return {Feature}RepositoryImpl(ref.watch({feature}RemoteDatasourceProvider));
+}
+
+class {Feature}RepositoryImpl implements I{Feature}Repository {
   {Feature}RepositoryImpl(this._datasource);
   final {Feature}RemoteDatasource _datasource;
 
   @override
-  Future<List<{Entity}>> getAll() async {
-    final models = await _datasource.fetchAll();
-    return models.map((m) => m.toEntity()).toList();
+  Stream<List<{Entity}>> watchAll(String userId) {
+    return _datasource.watchAll(userId).map(
+      (models) => models.map((m) => m.toEntity()).toList(),
+    );
   }
 }
 ```
 
-### Datasource Pattern
+### Models (Freezed DTOs with Firestore)
 
 ```dart
-// lib/features/{feature}/data/datasources/{feature}_remote_datasource.dart
+// lib/features/{feature}/data/models/{name}_model.dart
 
-@riverpod
-{Feature}RemoteDatasource {feature}RemoteDatasource(Ref ref) {
-  return {Feature}RemoteDatasource(ref.watch(dioProvider));
+@freezed
+abstract class {Name}Model with _${Name}Model {
+  const factory {Name}Model({
+    required String id,
+    required String name,
+    DateTime? createdAt,
+  }) = _{Name}Model;
+
+  factory {Name}Model.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return {Name}Model(
+      id: doc.id,
+      name: data['name'] as String? ?? '',
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
+    );
+  }
+
+  factory {Name}Model.fromJson(Map<String, dynamic> json) =>
+      _${Name}ModelFromJson(json);
 }
 
-class {Feature}RemoteDatasource {
-  {Feature}RemoteDatasource(this._dio);
-  final Dio _dio;
-
-  Future<List<{Model}>> fetchAll() async {
-    final response = await _dio.get('/api/{feature}');
-    return (response.data as List)
-        .map((json) => {Model}.fromJson(json as Map<String, dynamic>))
-        .toList();
-  }
-}
-```
-
-### Providers (Presentation Layer)
-
-```dart
-// lib/features/{feature}/presentation/providers/{feature}_provider.dart
-
-@riverpod
-class {Feature}Notifier extends _${Feature}Notifier {
-  @override
-  Future<{Feature}State> build() async {
-    return const {Feature}State();
-  }
-
-  Future<bool> fetchData() async {
-    final current = state.value ?? const {Feature}State();
-    state = AsyncData(current.copyWith(isLoading: true, error: null));
-
-    try {
-      final repository = ref.read({feature}RepositoryProvider);
-      final data = await repository.getAll();
-      state = AsyncData(current.copyWith(data: data, isLoading: false));
-      return true;
-    } catch (e) {
-      state = AsyncData(current.copyWith(error: e.toString(), isLoading: false));
-      return false;
-    }
-  }
+extension {Name}ModelX on {Name}Model {
+  {Name} toEntity() => {Name}(id: id, name: name, createdAt: createdAt);
 }
 ```
 
 ### Use Cases (Only for Complex Flows)
 
 ```dart
-// lib/features/swap/domain/usecases/execute_swap_usecase.dart
+// lib/features/ai_coach/domain/usecases/send_coach_message.dart
 // Only create when business logic spans multiple repositories
 
-class ExecuteSwapUseCase {
-  ExecuteSwapUseCase(this._swapRepo, this._walletRepo, this._transactionRepo);
+class SendCoachMessage {
+  SendCoachMessage(this._coachRepo, this._messageRepo);
 
-  final SwapRepository _swapRepo;
-  final WalletRepository _walletRepo;
-  final TransactionRepository _transactionRepo;
+  final IAiCoachRepository _coachRepo;
+  final IMessageRepository _messageRepo;
 
-  Future<SwapResult> execute(SwapParams params) async {
-    final quote = await _swapRepo.getQuote(params);
-    final tx = await _walletRepo.buildTransaction(quote);
-    final result = await _walletRepo.sendTransaction(tx);
-    await _transactionRepo.record(result);
-    return result;
+  Future<ChatMessage> execute(String userId, String text) async {
+    await _messageRepo.persistUserMessage(userId, text);
+    final response = await _coachRepo.sendMessage(userId, text);
+    await _messageRepo.persistAssistantMessage(userId, response);
+    return response;
   }
 }
 ```
 
-### Models vs Entities
+## Cloud Function Architecture
 
-```dart
-// Data layer DTO: lib/features/{feature}/data/models/{name}_model.dart
-@freezed
-abstract class {Name}Model with _${Name}Model {
-  const factory {Name}Model({
-    required String id,
-    @JsonKey(name: 'created_at') DateTime? createdAt,
-  }) = _{Name}Model;
+### Chat Handler (HTTP Callable)
 
-  factory {Name}Model.fromJson(Map<String, dynamic> json) =>
-      _${Name}ModelFromJson(json);
-}
+Replaces the current `onMessageCreated` Firestore trigger. Now an HTTP callable that the Flutter app calls directly:
 
-// Domain entity: lib/features/{feature}/domain/entities/{name}.dart
-// Only create when entity diverges from DTO
-@freezed
-abstract class {Name} with _${Name} {
-  const factory {Name}({
-    required String id,
-    DateTime? createdAt,
-  }) = _{Name};
-}
+```typescript
+// functions/src/chat/chatHandler.ts
+
+export const chat = onCall(async (request) => {
+  const { userId, message } = request.data;
+
+  // 1. Assemble system prompt from agent_config + user profile
+  // 2. Fetch conversation history from Firestore
+  // 3. Call Claude with tool schemas
+  // 4. Tool loop: execute tools, feed results back to Claude
+  // 5. Persist conversation turn to Firestore
+  // 6. Return response to Flutter
+});
+```
+
+### Embedding Pipeline (Firestore Trigger)
+
+Triggers when a workout document is created/updated:
+
+```typescript
+// functions/src/embeddings/embedWorkout.ts
+
+export const onWorkoutCreated = onDocumentCreated(
+  "users/{userId}/workouts/{workoutId}",
+  async (event) => {
+    // 1. Build text representation of workout
+    // 2. Call Vertex AI text-embedding-004
+    // 3. Write 768-dim vector back to workout document
+  }
+);
 ```
 
 ## Anti-Patterns to Avoid
 
 ### DO NOT:
 
-1. **Put API calls in screens or providers directly**
+1. **Call Claude or Vertex AI from Flutter**
    ```dart
-   // WRONG - API call in screen
-   final response = await dio.get('/users');
+   // WRONG - API call from app
+   final response = await anthropicClient.messages.create(...);
 
-   // CORRECT - Go through repository
-   final users = await ref.read({feature}RepositoryProvider).getAll();
+   // CORRECT - Go through Cloud Function
+   final response = await functions.httpsCallable('chat').call(data);
    ```
 
 2. **Import between features**
    ```dart
    // WRONG
-   import 'package:app/features/wallets/presentation/providers/wallet_provider.dart';
+   import 'package:track_me/features/workout/presentation/providers/workout_provider.dart';
 
-   // CORRECT - Use core for shared state
-   import 'package:app/core/services/auth_service.dart';
+   // CORRECT - Use core for shared state or pass data via navigation
+   import 'package:track_me/core/constants/firestore_constants.dart';
    ```
 
-3. **Add all layers to simple features**
+3. **Access Firestore directly from screens or providers**
    ```dart
-   // WRONG - Dashboard just displays data, doesn't need domain layer
-   features/dashboard/domain/usecases/...
-   features/dashboard/domain/repositories/...
+   // WRONG - Firestore in screen
+   final snap = await FirebaseFirestore.instance.collection('users').get();
+
+   // CORRECT - Go through datasource → repository → provider
+   final data = await ref.read(workoutRepositoryProvider).getAll(userId);
+   ```
+
+4. **Add all layers to simple features**
+   ```dart
+   // WRONG - Profile just displays/edits data, doesn't need full domain layer
+   features/profile/domain/usecases/...
 
    // CORRECT - Simple features skip unnecessary layers
-   features/dashboard/presentation/screens/dashboard_screen.dart
-   features/dashboard/presentation/providers/dashboard_provider.dart
+   features/profile/presentation/screens/profile_screen.dart
+   features/profile/presentation/providers/user_profile_provider.dart
    ```
 
-4. **Create use cases for simple CRUD**
+5. **Create use cases for simple CRUD**
    ```dart
    // WRONG - Pass-through use case
-   class GetUsersUseCase {
-     Future<List<User>> execute() => repository.getAll();
+   class GetWorkoutsUseCase {
+     Future<List<Workout>> execute() => repository.getAll();
    }
 
    // CORRECT - Provider calls repository directly for simple operations
-   final users = await ref.read(usersRepositoryProvider).getAll();
-   ```
-
-5. **Use floating-point for token amounts**
-   ```dart
-   // WRONG
-   double tokenAmount = 1.5;
-
-   // CORRECT
-   BigInt tokenAmount = BigInt.from(1500000000000000000);
-   // Convert to display string only at presentation boundary
-   ```
-
-6. **Use keepAlive on feature providers**
-   ```dart
-   // WRONG
-   @Riverpod(keepAlive: true)
-   class DashboardNotifier extends _$DashboardNotifier { }
-
-   // CORRECT - Feature providers should reload per navigation
-   @riverpod
-   class DashboardNotifier extends _$DashboardNotifier { }
+   final workouts = await ref.read(workoutRepositoryProvider).getAll(userId);
    ```
 
 ## Provider Lifetime Policy (keepAlive)
@@ -318,9 +345,8 @@ abstract class {Name} with _${Name} {
 
 | Provider | keepAlive | Reason |
 |----------|-----------|--------|
-| Dio | Yes | HTTP client with configured interceptors |
-| SecureStorage | Yes | Persistent storage service |
 | AuthService | Yes | Auth state must persist across navigation |
+| FirebaseFirestore instance | Yes | Singleton |
 
 ### Use `@riverpod` (default) for everything else:
 
