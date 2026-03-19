@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'package:track_me/core/theme/app_theme.dart';
+import 'package:track_me/core/widgets/empty_state_widget.dart';
 import 'package:track_me/features/personal_records/presentation/providers/pr_provider.dart';
 
 class PRScreen extends ConsumerWidget {
@@ -20,27 +23,12 @@ class PRScreen extends ConsumerWidget {
             error: (e, _) => Center(child: Text('Error: $e')),
             data: (prs) {
               if (prs.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.emoji_events,
-                        size: 64,
-                        color: Colors.grey[700],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No personal records yet',
-                        style: TextStyle(color: Colors.grey[500], fontSize: 16),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'PRs are tracked automatically from your workouts',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                      ),
-                    ],
-                  ),
+                return EmptyStateWidget(
+                  icon: Icons.emoji_events,
+                  iconGradient: AppTheme.goldGradient,
+                  title: 'No records yet',
+                  subtitle:
+                      'Your personal bests will appear here automatically',
                 );
               }
 
@@ -50,53 +38,98 @@ class PRScreen extends ConsumerWidget {
                   crossAxisCount: 2,
                   mainAxisSpacing: 8,
                   crossAxisSpacing: 8,
-                  childAspectRatio: 1.2,
+                  childAspectRatio: 1.1,
                 ),
                 itemCount: prs.length,
                 itemBuilder: (context, index) {
                   final pr = prs[index];
+                  final theme = Theme.of(context);
+
                   return Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(
-                            Icons.emoji_events,
-                            color: Color(0xFFFFD700),
-                            size: 24,
+                        margin: EdgeInsets.zero,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Gold gradient top strip
+                              Container(
+                                height: 3,
+                                decoration: const BoxDecoration(
+                                  gradient: AppTheme.goldGradient,
+                                ),
+                              ),
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // Gradient trophy
+                                      ShaderMask(
+                                            shaderCallback: (bounds) => AppTheme
+                                                .goldGradient
+                                                .createShader(bounds),
+                                            child: const Icon(
+                                              Icons.emoji_events,
+                                              color: Colors.white,
+                                              size: 24,
+                                            ),
+                                          )
+                                          .animate(
+                                            onPlay: (c) => c.repeat(
+                                              reverse: true,
+                                              period: 3.seconds,
+                                            ),
+                                          )
+                                          .shimmer(
+                                            duration: 1500.ms,
+                                            color: AppTheme.gold.withValues(
+                                              alpha: 0.3,
+                                            ),
+                                          ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        pr.exerciseName.replaceAll('_', ' '),
+                                        style: theme.textTheme.titleSmall,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const Spacer(),
+                                      // Hero weight
+                                      Text(
+                                        pr.display,
+                                        style: theme.textTheme.titleLarge
+                                            ?.copyWith(
+                                              color: AppTheme.primaryGreen,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        DateFormat.yMMMd().format(pr.date),
+                                        style: theme.textTheme.labelSmall,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            pr.exerciseName.replaceAll('_', ' '),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const Spacer(),
-                          Text(
-                            pr.display,
-                            style: const TextStyle(
-                              color: Color(0xFF4CAF50),
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            DateFormat.yMMMd().format(pr.date),
-                            style: TextStyle(
-                              color: Colors.grey[500],
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
+                        ),
+                      )
+                      .animate()
+                      .fadeIn(
+                        delay: Duration(milliseconds: index * 80),
+                        duration: 300.ms,
+                      )
+                      .scale(
+                        begin: const Offset(0.95, 0.95),
+                        end: const Offset(1, 1),
+                        delay: Duration(milliseconds: index * 80),
+                        duration: 300.ms,
+                      );
                 },
               );
             },

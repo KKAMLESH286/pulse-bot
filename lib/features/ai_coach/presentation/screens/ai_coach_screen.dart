@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:track_me/core/theme/app_theme.dart';
+import 'package:track_me/features/auth/presentation/providers/auth_provider.dart';
 import 'package:track_me/features/ai_coach/presentation/providers/chat_provider.dart';
 import 'package:track_me/features/ai_coach/presentation/widgets/chat_input_widget.dart';
 import 'package:track_me/features/ai_coach/presentation/widgets/message_bubble_widget.dart';
@@ -36,10 +39,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final messagesAsync = ref.watch(chatMessagesProvider);
     final isProcessing = ref.watch(isChatProcessingProvider);
     final isSending = ref.watch(coachProvider);
+    final userPhotoUrl = ref.watch(currentUserProvider)?.photoURL;
 
     return Column(
       children: [
-        AppBar(title: const Text('GainBot'), centerTitle: true),
+        // Custom AppBar
+        _buildAppBar(context),
         Expanded(
           child: Center(
             child: ConstrainedBox(
@@ -49,34 +54,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 error: (e, _) => Center(child: Text('Error: $e')),
                 data: (messages) {
                   if (messages.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.chat_bubble_outline,
-                            size: 64,
-                            color: Colors.grey[700],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Start logging your workout!',
-                            style: TextStyle(
-                              color: Colors.grey[500],
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Try: "bench 80kg 3x8"',
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
+                    return _buildEmptyState(context);
                   }
 
                   final itemCount =
@@ -96,7 +74,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           (isProcessing || isSending)) {
                         return const TypingIndicator();
                       }
-                      return MessageBubble(message: messages[reversedIndex]);
+                      return MessageBubble(
+                            message: messages[reversedIndex],
+                            userPhotoUrl: userPhotoUrl,
+                          )
+                          .animate()
+                          .fadeIn(duration: 200.ms)
+                          .slideY(
+                            begin: 0.05,
+                            end: 0,
+                            duration: 200.ms,
+                            curve: Curves.easeOut,
+                          );
                     },
                   );
                 },
@@ -111,6 +100,175 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildAppBar(BuildContext context) {
+    return AppBar(
+      titleSpacing: 16,
+      centerTitle: false,
+      title: Row(
+        children: [
+          // Bot avatar with online indicator
+          Stack(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.fitness_center,
+                  size: 18,
+                  color: Colors.white,
+                ),
+              ),
+              Positioned(
+                right: -1,
+                bottom: -1,
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryGreen,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppTheme.surface, width: 2),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Pulse AI', style: Theme.of(context).textTheme.titleMedium),
+              Text('AI Coach', style: Theme.of(context).textTheme.labelSmall),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Gradient bot avatar
+            Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    gradient: AppTheme.primaryGradient,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.primaryGreen.withValues(alpha: 0.2),
+                        blurRadius: 24,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.fitness_center,
+                    size: 40,
+                    color: Colors.white,
+                  ),
+                )
+                .animate()
+                .fadeIn(duration: 500.ms)
+                .scale(
+                  begin: const Offset(0.8, 0.8),
+                  end: const Offset(1, 1),
+                  duration: 500.ms,
+                  curve: Curves.easeOutBack,
+                ),
+
+            const SizedBox(height: 20),
+
+            Text(
+              "Hey! I'm your AI coach",
+              style: theme.textTheme.titleMedium,
+            ).animate().fadeIn(delay: 150.ms, duration: 400.ms),
+
+            const SizedBox(height: 8),
+
+            Text(
+              'Tell me what you trained',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: AppTheme.textSecondary,
+              ),
+            ).animate().fadeIn(delay: 250.ms, duration: 400.ms),
+
+            const SizedBox(height: 28),
+
+            // Suggestion chips
+            Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    _SuggestionChip(
+                      label: 'Bench press 80kg 3x8',
+                      onTap: () => _sendMessage('Bench press 80kg 3x8'),
+                    ),
+                    _SuggestionChip(
+                      label: 'I did legs today',
+                      onTap: () => _sendMessage('I did legs today'),
+                    ),
+                    _SuggestionChip(
+                      label: 'Suggest a workout',
+                      onTap: () => _sendMessage('Suggest a workout'),
+                    ),
+                  ],
+                )
+                .animate()
+                .fadeIn(delay: 400.ms, duration: 400.ms)
+                .slideY(begin: 0.1, end: 0, duration: 400.ms),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SuggestionChip extends StatelessWidget {
+  const _SuggestionChip({required this.label, required this.onTap});
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppTheme.card,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: AppTheme.primaryGreen.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppTheme.primaryGreen,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

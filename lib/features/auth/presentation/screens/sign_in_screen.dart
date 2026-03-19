@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:track_me/core/routing/route_names.dart';
+import 'package:track_me/core/theme/app_theme.dart';
 import 'package:track_me/features/auth/presentation/providers/auth_provider.dart';
 
 class SignInScreen extends ConsumerStatefulWidget {
@@ -35,6 +37,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       body: Center(
         child: Padding(
@@ -42,46 +46,133 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.fitness_center,
-                size: 80,
-                color: Color(0xFF4CAF50),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'GainBot',
-                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'AI-powered workout tracker',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyLarge?.copyWith(color: Colors.grey),
-              ),
-              const SizedBox(height: 48),
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton.icon(
-                  onPressed: _isLoading ? null : _handleGoogleSignIn,
-                  icon: _isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.login),
-                  label: Text(
-                    _isLoading ? 'Signing in...' : 'Sign in with Google',
+              // Logo
+              Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.primaryGradient,
+                      borderRadius: BorderRadius.circular(32),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primaryGreen.withValues(alpha: 0.3),
+                          blurRadius: 40,
+                          spreadRadius: 0,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.fitness_center,
+                      size: 56,
+                      color: Colors.white,
+                    ),
+                  )
+                  .animate()
+                  .fadeIn(duration: 600.ms)
+                  .scale(
+                    begin: const Offset(0.8, 0.8),
+                    end: const Offset(1, 1),
+                    duration: 600.ms,
+                    curve: Curves.easeOutBack,
                   ),
+
+              const SizedBox(height: 32),
+
+              // Title with gradient
+              ShaderMask(
+                    shaderCallback: (bounds) =>
+                        AppTheme.primaryGradient.createShader(bounds),
+                    child: Text(
+                      'Pulse AI',
+                      style: theme.textTheme.headlineLarge?.copyWith(
+                        color: Colors.white,
+                        fontSize: 40,
+                      ),
+                    ),
+                  )
+                  .animate()
+                  .fadeIn(delay: 200.ms, duration: 500.ms)
+                  .slideY(begin: 0.1, end: 0, duration: 500.ms),
+
+              const SizedBox(height: 8),
+
+              // Subtitle
+              Text(
+                'Your AI workout coach',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: AppTheme.textSecondary,
                 ),
-              ),
+              ).animate().fadeIn(delay: 350.ms, duration: 500.ms),
+
+              const SizedBox(height: 24),
+
+              // Feature pills
+              Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _FeaturePill(label: 'Log workouts'),
+                      const SizedBox(width: 8),
+                      _FeaturePill(label: 'Track PRs'),
+                      const SizedBox(width: 8),
+                      _FeaturePill(label: 'AI coaching'),
+                    ],
+                  )
+                  .animate()
+                  .fadeIn(delay: 500.ms, duration: 500.ms)
+                  .slideY(begin: 0.1, end: 0, duration: 500.ms),
+
+              const SizedBox(height: 48),
+
+              // Sign in button
+              SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton.icon(
+                      onPressed: _isLoading ? null : _handleGoogleSignIn,
+                      icon: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.login),
+                      label: Text(
+                        _isLoading ? 'Signing in...' : 'Sign in with Google',
+                      ),
+                    ),
+                  )
+                  .animate()
+                  .fadeIn(delay: 650.ms, duration: 500.ms)
+                  .slideY(begin: 0.15, end: 0, duration: 500.ms),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FeaturePill extends StatelessWidget {
+  const _FeaturePill({required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.primaryGreen.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: AppTheme.primaryGreen,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );

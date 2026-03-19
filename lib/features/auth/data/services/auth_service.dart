@@ -48,7 +48,7 @@ class AuthService {
 
     await agentConfig.doc('soul').set({
       'content':
-          '''You are GainBot, a knowledgeable and motivating fitness assistant.
+          '''You are Pulse AI, a knowledgeable and motivating fitness assistant.
 You help users track their workouts by understanding natural language input and converting it to structured data.
 You are encouraging but not overly enthusiastic. You give concise, helpful responses.''',
     });
