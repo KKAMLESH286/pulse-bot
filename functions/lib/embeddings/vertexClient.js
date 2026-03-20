@@ -1,43 +1,41 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.embedText = embedText;
-const aiplatform_1 = require("@google-cloud/aiplatform");
+const google_auth_library_1 = require("google-auth-library");
 const PROJECT_ID = "gain-bot-4df1d";
 const LOCATION = "us-central1";
 const MODEL_ID = "text-embedding-004";
-const ENDPOINT = `projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${MODEL_ID}`;
-let predictionClient = null;
-function getPredictionClient() {
-    if (!predictionClient) {
-        predictionClient = new aiplatform_1.PredictionServiceClient({
-            apiEndpoint: `${LOCATION}-aiplatform.googleapis.com`,
-        });
-    }
-    return predictionClient;
-}
+const ENDPOINT_URL = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${MODEL_ID}:predict`;
+const auth = new google_auth_library_1.GoogleAuth({
+    scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+});
 /**
  * Call Vertex AI text-embedding-004 to generate a 768-dim vector.
+ * Uses REST API directly instead of the heavy @google-cloud/aiplatform SDK.
  */
 async function embedText(text) {
-    const client = getPredictionClient();
-    const instance = aiplatform_1.helpers.toValue({ content: text });
-    const parameters = aiplatform_1.helpers.toValue({
-        outputDimensionality: 768,
+    const client = await auth.getClient();
+    const token = await client.getAccessToken();
+    const response = await fetch(ENDPOINT_URL, {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${token.token}`,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            instances: [{ content: text }],
+            parameters: { outputDimensionality: 768 },
+        }),
     });
-    const [response] = await client.predict({
-        endpoint: ENDPOINT,
-        instances: [instance],
-        parameters,
-    });
-    const prediction = response.predictions?.[0];
-    if (!prediction) {
-        throw new Error("No prediction returned from Vertex AI");
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Vertex AI API error (${response.status}): ${errorText}`);
     }
-    const embeddings = prediction
-        ?.structValue?.fields?.embeddings?.structValue?.fields?.values?.listValue?.values;
-    if (!embeddings) {
-        throw new Error("Could not extract embedding values from response");
+    const data = await response.json();
+    const values = data?.predictions?.[0]?.embeddings?.values;
+    if (!values || !Array.isArray(values)) {
+        throw new Error("Could not extract embedding values from Vertex AI response");
     }
-    return embeddings.map((v) => v.numberValue ?? 0);
+    return values;
 }
 //# sourceMappingURL=vertexClient.js.map

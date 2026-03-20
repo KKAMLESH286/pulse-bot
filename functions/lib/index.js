@@ -33,11 +33,9 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.chat = exports.onWorkoutCreated = exports.onMessageCreated = void 0;
+exports.chat = exports.onWorkoutCreated = void 0;
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
-var onMessageCreated_1 = require("./onMessageCreated");
-Object.defineProperty(exports, "onMessageCreated", { enumerable: true, get: function () { return onMessageCreated_1.onMessageCreated; } });
 var embedWorkout_1 = require("./embeddings/embedWorkout");
 Object.defineProperty(exports, "onWorkoutCreated", { enumerable: true, get: function () { return embedWorkout_1.onWorkoutCreated; } });
 var chatHandler_1 = require("./chat/chatHandler");

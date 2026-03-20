@@ -38,7 +38,10 @@ function workoutToText(data) {
  * Firestore trigger: when a new workout is created in users/{userId}/workouts/{workoutId},
  * generate a 768-dim embedding via Vertex AI and write it back to the document.
  */
-exports.onWorkoutCreated = (0, firestore_1.onDocumentCreated)({ document: "users/{userId}/workouts/{workoutId}" }, async (event) => {
+exports.onWorkoutCreated = (0, firestore_1.onDocumentCreated)({
+    document: "users/{userId}/workouts/{workoutId}",
+    memory: "512MiB",
+}, async (event) => {
     const snap = event.data;
     if (!snap)
         return;
