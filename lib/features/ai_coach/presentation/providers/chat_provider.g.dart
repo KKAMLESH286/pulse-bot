@@ -54,6 +54,61 @@ final class ChatMessagesProvider
 
 String _$chatMessagesHash() => r'5b9ec8702a93ba66e2b2ab0becb1946d64ae27ba';
 
+/// Combined messages: Firestore stream + pending optimistic message.
+/// Deduplicates by checking if pending message text already exists in stream.
+
+@ProviderFor(allChatMessages)
+const allChatMessagesProvider = AllChatMessagesProvider._();
+
+/// Combined messages: Firestore stream + pending optimistic message.
+/// Deduplicates by checking if pending message text already exists in stream.
+
+final class AllChatMessagesProvider
+    extends
+        $FunctionalProvider<
+          List<ChatMessage>,
+          List<ChatMessage>,
+          List<ChatMessage>
+        >
+    with $Provider<List<ChatMessage>> {
+  /// Combined messages: Firestore stream + pending optimistic message.
+  /// Deduplicates by checking if pending message text already exists in stream.
+  const AllChatMessagesProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'allChatMessagesProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$allChatMessagesHash();
+
+  @$internal
+  @override
+  $ProviderElement<List<ChatMessage>> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  List<ChatMessage> create(Ref ref) {
+    return allChatMessages(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(List<ChatMessage> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<List<ChatMessage>>(value),
+    );
+  }
+}
+
+String _$allChatMessagesHash() => r'cd750474f048ad69fb8441efd0bdb4223914833f';
+
 /// Whether the AI coach is currently processing a message.
 
 @ProviderFor(isChatProcessing)
@@ -98,7 +153,7 @@ final class IsChatProcessingProvider
   }
 }
 
-String _$isChatProcessingHash() => r'fc0eb5fa6fb10fac051d0f0112fed65771d9bfeb';
+String _$isChatProcessingHash() => r'0e0ccea9ea7f56b200d4379a3516981f1ca6a784';
 
 /// Send a message to the AI coach via Cloud Function.
 /// Returns the assistant's response text.
@@ -139,7 +194,7 @@ final class CoachNotifierProvider
   }
 }
 
-String _$coachNotifierHash() => r'9be9ea19b1ff4eb9215f7406f8a8eab7b3f97e38';
+String _$coachNotifierHash() => r'244980d849bc92a55ea4be424b0dff21d22971d1';
 
 /// Send a message to the AI coach via Cloud Function.
 /// Returns the assistant's response text.
