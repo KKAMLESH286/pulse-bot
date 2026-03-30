@@ -64,7 +64,12 @@ const allChatMessagesProvider = AllChatMessagesProvider._();
 /// Deduplicates by checking if pending message text already exists in stream.
 
 final class AllChatMessagesProvider
-    extends $FunctionalProvider<List<ChatMessage>, List<ChatMessage>, List<ChatMessage>>
+    extends
+        $FunctionalProvider<
+          List<ChatMessage>,
+          List<ChatMessage>,
+          List<ChatMessage>
+        >
     with $Provider<List<ChatMessage>> {
   /// Combined messages: Firestore stream + pending optimistic message.
   /// Deduplicates by checking if pending message text already exists in stream.
@@ -102,7 +107,7 @@ final class AllChatMessagesProvider
   }
 }
 
-String _$allChatMessagesHash() => r'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2';
+String _$allChatMessagesHash() => r'cd750474f048ad69fb8441efd0bdb4223914833f';
 
 /// Whether the AI coach is currently processing a message.
 
@@ -148,7 +153,7 @@ final class IsChatProcessingProvider
   }
 }
 
-String _$isChatProcessingHash() => r'fc0eb5fa6fb10fac051d0f0112fed65771d9bfeb';
+String _$isChatProcessingHash() => r'0e0ccea9ea7f56b200d4379a3516981f1ca6a784';
 
 /// Send a message to the AI coach via Cloud Function.
 /// Returns the assistant's response text.
@@ -189,7 +194,7 @@ final class CoachNotifierProvider
   }
 }
 
-String _$coachNotifierHash() => r'9be9ea19b1ff4eb9215f7406f8a8eab7b3f97e38';
+String _$coachNotifierHash() => r'244980d849bc92a55ea4be424b0dff21d22971d1';
 
 /// Send a message to the AI coach via Cloud Function.
 /// Returns the assistant's response text.
