@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:track_me/core/theme/app_theme.dart';
+import 'package:track_me/features/ai_coach/data/models/chat_message_model.dart';
 import 'package:track_me/features/auth/presentation/providers/auth_provider.dart';
 import 'package:track_me/features/ai_coach/presentation/providers/chat_provider.dart';
 import 'package:track_me/features/ai_coach/presentation/widgets/chat_input_widget.dart';
@@ -36,7 +37,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final messagesAsync = ref.watch(chatMessagesProvider);
+    final messagesLoading = ref.watch(chatMessagesProvider).isLoading;
+    final messagesError = ref.watch(chatMessagesProvider).error;
+    final messages = ref.watch(allChatMessagesProvider);
     final isProcessing = ref.watch(isChatProcessingProvider);
     final isSending = ref.watch(coachProvider);
     final userPhotoUrl = ref.watch(currentUserProvider)?.photoURL;
@@ -49,47 +52,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 600),
-              child: messagesAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('Error: $e')),
-                data: (messages) {
-                  if (messages.isEmpty) {
-                    return _buildEmptyState(context);
-                  }
-
-                  final itemCount =
-                      messages.length + (isProcessing || isSending ? 1 : 0);
-
-                  return ListView.builder(
-                    controller: _scrollController,
-                    reverse: true,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    itemCount: itemCount,
-                    itemBuilder: (context, index) {
-                      final reversedIndex = itemCount - 1 - index;
-                      if (reversedIndex == messages.length &&
-                          (isProcessing || isSending)) {
-                        return const TypingIndicator();
-                      }
-                      return MessageBubble(
-                            message: messages[reversedIndex],
-                            userPhotoUrl: userPhotoUrl,
-                          )
-                          .animate()
-                          .fadeIn(duration: 200.ms)
-                          .slideY(
-                            begin: 0.05,
-                            end: 0,
-                            duration: 200.ms,
-                            curve: Curves.easeOut,
-                          );
-                    },
-                  );
-                },
-              ),
+              child: messagesLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : messagesError != null
+                      ? Center(child: Text('Error: $messagesError'))
+                      : messages.isEmpty
+                          ? _buildEmptyState(context)
+                          : _buildMessageList(
+                              messages, isProcessing, isSending, userPhotoUrl),
             ),
           ),
         ),
@@ -100,6 +70,41 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildMessageList(
+    List<ChatMessage> messages,
+    bool isProcessing,
+    bool isSending,
+    String? userPhotoUrl,
+  ) {
+    final itemCount = messages.length + (isProcessing || isSending ? 1 : 0);
+
+    return ListView.builder(
+      controller: _scrollController,
+      reverse: true,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      itemCount: itemCount,
+      itemBuilder: (context, index) {
+        final reversedIndex = itemCount - 1 - index;
+        if (reversedIndex == messages.length &&
+            (isProcessing || isSending)) {
+          return const TypingIndicator();
+        }
+        return MessageBubble(
+              message: messages[reversedIndex],
+              userPhotoUrl: userPhotoUrl,
+            )
+            .animate()
+            .fadeIn(duration: 200.ms)
+            .slideY(
+              begin: 0.05,
+              end: 0,
+              duration: 200.ms,
+              curve: Curves.easeOut,
+            );
+      },
     );
   }
 

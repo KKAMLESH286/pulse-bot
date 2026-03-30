@@ -54,6 +54,56 @@ final class ChatMessagesProvider
 
 String _$chatMessagesHash() => r'5b9ec8702a93ba66e2b2ab0becb1946d64ae27ba';
 
+/// Combined messages: Firestore stream + pending optimistic message.
+/// Deduplicates by checking if pending message text already exists in stream.
+
+@ProviderFor(allChatMessages)
+const allChatMessagesProvider = AllChatMessagesProvider._();
+
+/// Combined messages: Firestore stream + pending optimistic message.
+/// Deduplicates by checking if pending message text already exists in stream.
+
+final class AllChatMessagesProvider
+    extends $FunctionalProvider<List<ChatMessage>, List<ChatMessage>, List<ChatMessage>>
+    with $Provider<List<ChatMessage>> {
+  /// Combined messages: Firestore stream + pending optimistic message.
+  /// Deduplicates by checking if pending message text already exists in stream.
+  const AllChatMessagesProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'allChatMessagesProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$allChatMessagesHash();
+
+  @$internal
+  @override
+  $ProviderElement<List<ChatMessage>> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  List<ChatMessage> create(Ref ref) {
+    return allChatMessages(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(List<ChatMessage> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<List<ChatMessage>>(value),
+    );
+  }
+}
+
+String _$allChatMessagesHash() => r'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2';
+
 /// Whether the AI coach is currently processing a message.
 
 @ProviderFor(isChatProcessing)
