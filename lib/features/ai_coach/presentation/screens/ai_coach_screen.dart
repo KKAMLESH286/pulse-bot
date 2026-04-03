@@ -46,59 +46,49 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         // Custom AppBar
         _buildAppBar(context),
         Expanded(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 600),
-              child: messagesAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('Error: $e')),
-                data: (messages) {
-                  if (messages.isEmpty) {
-                    return _buildEmptyState(context);
+          child: messagesAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Center(child: Text('Error: $e')),
+            data: (messages) {
+              if (messages.isEmpty) {
+                return _buildEmptyState(context);
+              }
+
+              final itemCount =
+                  messages.length + (isProcessing || isSending ? 1 : 0);
+
+              return ListView.builder(
+                controller: _scrollController,
+                reverse: true,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                itemCount: itemCount,
+                itemBuilder: (context, index) {
+                  final reversedIndex = itemCount - 1 - index;
+                  if (reversedIndex == messages.length &&
+                      (isProcessing || isSending)) {
+                    return const TypingIndicator();
                   }
-
-                  final itemCount =
-                      messages.length + (isProcessing || isSending ? 1 : 0);
-
-                  return ListView.builder(
-                    controller: _scrollController,
-                    reverse: true,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    itemCount: itemCount,
-                    itemBuilder: (context, index) {
-                      final reversedIndex = itemCount - 1 - index;
-                      if (reversedIndex == messages.length &&
-                          (isProcessing || isSending)) {
-                        return const TypingIndicator();
-                      }
-                      return MessageBubble(
-                            message: messages[reversedIndex],
-                            userPhotoUrl: userPhotoUrl,
-                          )
-                          .animate()
-                          .fadeIn(duration: 200.ms)
-                          .slideY(
-                            begin: 0.05,
-                            end: 0,
-                            duration: 200.ms,
-                            curve: Curves.easeOut,
-                          );
-                    },
-                  );
+                  return MessageBubble(
+                        message: messages[reversedIndex],
+                        userPhotoUrl: userPhotoUrl,
+                      )
+                      .animate()
+                      .fadeIn(duration: 200.ms)
+                      .slideY(
+                        begin: 0.05,
+                        end: 0,
+                        duration: 200.ms,
+                        curve: Curves.easeOut,
+                      );
                 },
-              ),
-            ),
+              );
+            },
           ),
         ),
-        Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: ChatInput(onSend: _sendMessage),
-          ),
-        ),
+        ChatInput(onSend: _sendMessage),
       ],
     );
   }

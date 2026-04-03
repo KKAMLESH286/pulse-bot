@@ -115,243 +115,228 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
               return SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 500),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // Profile header
-                          Center(
-                            child: Column(
-                              children: [
-                                // Avatar with gradient ring
-                                Container(
-                                  padding: const EdgeInsets.all(3),
-                                  decoration: const BoxDecoration(
-                                    gradient: AppTheme.primaryGradient,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: ClipOval(
-                                    child: Container(
-                                      width: 72,
-                                      height: 72,
-                                      color: AppTheme.surface,
-                                      child: user?.photoURL != null
-                                          ? Image.network(
-                                              user!.photoURL!,
-                                              width: 72,
-                                              height: 72,
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (_, _, _) => Center(
-                                                child: Text(
-                                                  _getInitials(
-                                                    user.displayName,
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Profile header
+                      Center(
+                        child: Column(
+                          children: [
+                            // Avatar with gradient ring
+                            Container(
+                              padding: const EdgeInsets.all(3),
+                              decoration: const BoxDecoration(
+                                gradient: AppTheme.primaryGradient,
+                                shape: BoxShape.circle,
+                              ),
+                              child: ClipOval(
+                                child: Container(
+                                  width: 72,
+                                  height: 72,
+                                  color: AppTheme.surface,
+                                  child: user?.photoURL != null
+                                      ? Image.network(
+                                          user!.photoURL!,
+                                          width: 72,
+                                          height: 72,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, _, _) => Center(
+                                            child: Text(
+                                              _getInitials(user.displayName),
+                                              style: theme.textTheme.titleLarge
+                                                  ?.copyWith(
+                                                    color:
+                                                        AppTheme.primaryGreen,
                                                   ),
-                                                  style: theme
-                                                      .textTheme
-                                                      .titleLarge
-                                                      ?.copyWith(
-                                                        color: AppTheme
-                                                            .primaryGreen,
-                                                      ),
-                                                ),
-                                              ),
-                                            )
-                                          : Center(
-                                              child: Text(
-                                                _getInitials(user?.displayName),
-                                                style: theme
-                                                    .textTheme
-                                                    .titleLarge
-                                                    ?.copyWith(
-                                                      color:
-                                                          AppTheme.primaryGreen,
-                                                    ),
-                                              ),
                                             ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                if (user?.email != null)
-                                  Text(
-                                    user!.email!,
-                                    style: theme.textTheme.bodySmall,
-                                  ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-
-                          // Personal Info section
-                          const SectionHeader(
-                            label: 'Personal Info',
-                            color: AppTheme.primaryGreen,
-                          ),
-                          Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: TextFormField(
-                                controller: _nameController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Name',
+                                          ),
+                                        )
+                                      : Center(
+                                          child: Text(
+                                            _getInitials(user?.displayName),
+                                            style: theme.textTheme.titleLarge
+                                                ?.copyWith(
+                                                  color: AppTheme.primaryGreen,
+                                                ),
+                                          ),
+                                        ),
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
+                            const SizedBox(height: 8),
+                            if (user?.email != null)
+                              Text(
+                                user!.email!,
+                                style: theme.textTheme.bodySmall,
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
 
-                          // Body Metrics section
-                          const SectionHeader(
-                            label: 'Body Metrics',
-                            color: AppTheme.primaryGreen,
+                      // Personal Info section
+                      const SectionHeader(
+                        label: 'Personal Info',
+                        color: AppTheme.primaryGreen,
+                      ),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: TextFormField(
+                            controller: _nameController,
+                            decoration: const InputDecoration(
+                              labelText: 'Name',
+                            ),
                           ),
-                          Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Body Metrics section
+                      const SectionHeader(
+                        label: 'Body Metrics',
+                        color: AppTheme.primaryGreen,
+                      ),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            children: [
+                              Row(
                                 children: [
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: TextFormField(
-                                          controller: _weightController,
-                                          decoration: const InputDecoration(
-                                            labelText: 'Weight (kg)',
-                                          ),
-                                          keyboardType: TextInputType.number,
-                                        ),
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: _weightController,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Weight (kg)',
                                       ),
-                                      const SizedBox(width: 16),
-                                      Expanded(
-                                        child: TextFormField(
-                                          controller: _heightController,
-                                          decoration: const InputDecoration(
-                                            labelText: 'Height (cm)',
-                                          ),
-                                          keyboardType: TextInputType.number,
-                                        ),
-                                      ),
-                                    ],
+                                      keyboardType: TextInputType.number,
+                                    ),
                                   ),
-                                  const SizedBox(height: 16),
-                                  // Level selector chips
-                                  Row(
-                                    children: [
-                                      Text(
-                                        'Level',
-                                        style: theme.textTheme.bodySmall,
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: _heightController,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Height (cm)',
                                       ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      _LevelChip(
-                                        label: 'Beginner',
-                                        isSelected: _level == 'beginner',
-                                        onTap: () =>
-                                            setState(() => _level = 'beginner'),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      _LevelChip(
-                                        label: 'Intermediate',
-                                        isSelected: _level == 'intermediate',
-                                        onTap: () => setState(
-                                          () => _level = 'intermediate',
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      _LevelChip(
-                                        label: 'Advanced',
-                                        isSelected: _level == 'advanced',
-                                        onTap: () =>
-                                            setState(() => _level = 'advanced'),
-                                      ),
-                                    ],
+                                      keyboardType: TextInputType.number,
+                                    ),
                                   ),
                                 ],
                               ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Training Goals section
-                          const SectionHeader(
-                            label: 'Training Goals',
-                            color: AppTheme.primaryGreen,
-                          ),
-                          Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: TextFormField(
-                                controller: _goalsController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Goals',
-                                ),
-                                maxLines: 3,
+                              const SizedBox(height: 16),
+                              // Level selector chips
+                              Row(
+                                children: [
+                                  Text(
+                                    'Level',
+                                    style: theme.textTheme.bodySmall,
+                                  ),
+                                ],
                               ),
-                            ),
-                          ),
-                          const SizedBox(height: 32),
-
-                          // Save button with gradient
-                          Container(
-                            height: 52,
-                            decoration: BoxDecoration(
-                              gradient: _isSaving
-                                  ? null
-                                  : AppTheme.primaryGradient,
-                              color: _isSaving ? AppTheme.surfaceBright : null,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Material(
-                              color: Colors.transparent,
-                              borderRadius: BorderRadius.circular(12),
-                              child: InkWell(
-                                onTap: _isSaving ? null : _save,
-                                borderRadius: BorderRadius.circular(12),
-                                child: Center(
-                                  child: _isSaving
-                                      ? const SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Colors.white,
-                                          ),
-                                        )
-                                      : Text(
-                                          'Save Profile',
-                                          style: theme.textTheme.labelLarge
-                                              ?.copyWith(color: Colors.white),
-                                        ),
-                                ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  _LevelChip(
+                                    label: 'Beginner',
+                                    isSelected: _level == 'beginner',
+                                    onTap: () =>
+                                        setState(() => _level = 'beginner'),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _LevelChip(
+                                    label: 'Intermediate',
+                                    isSelected: _level == 'intermediate',
+                                    onTap: () =>
+                                        setState(() => _level = 'intermediate'),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _LevelChip(
+                                    label: 'Advanced',
+                                    isSelected: _level == 'advanced',
+                                    onTap: () =>
+                                        setState(() => _level = 'advanced'),
+                                  ),
+                                ],
                               ),
-                            ),
+                            ],
                           ),
-                          const SizedBox(height: 24),
-
-                          // Sign out
-                          const Divider(),
-                          const SizedBox(height: 8),
-                          Center(
-                            child: TextButton.icon(
-                              onPressed: _signOut,
-                              icon: const Icon(Icons.logout, size: 18),
-                              label: const Text('Sign Out'),
-                              style: TextButton.styleFrom(
-                                foregroundColor: AppTheme.error,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                        ],
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 16),
+
+                      // Training Goals section
+                      const SectionHeader(
+                        label: 'Training Goals',
+                        color: AppTheme.primaryGreen,
+                      ),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: TextFormField(
+                            controller: _goalsController,
+                            decoration: const InputDecoration(
+                              labelText: 'Goals',
+                            ),
+                            maxLines: 3,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+
+                      // Save button with gradient
+                      Container(
+                        height: 52,
+                        decoration: BoxDecoration(
+                          gradient: _isSaving ? null : AppTheme.primaryGradient,
+                          color: _isSaving ? AppTheme.surfaceBright : null,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
+                          child: InkWell(
+                            onTap: _isSaving ? null : _save,
+                            borderRadius: BorderRadius.circular(12),
+                            child: Center(
+                              child: _isSaving
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : Text(
+                                      'Save Profile',
+                                      style: theme.textTheme.labelLarge
+                                          ?.copyWith(color: Colors.white),
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Sign out
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      Center(
+                        child: TextButton.icon(
+                          onPressed: _signOut,
+                          icon: const Icon(Icons.logout, size: 18),
+                          label: const Text('Sign Out'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppTheme.error,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                   ),
                 ),
               );

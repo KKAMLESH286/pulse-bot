@@ -14,108 +14,116 @@ class WorkoutDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final entriesAsync = ref.watch(workoutEntriesProvider);
 
-    return Scaffold(
-      body: entriesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
-        data: (entries) {
-          final entry = entries.where((e) => e.id == date).firstOrNull;
-          if (entry == null) {
-            return const Center(child: Text('Workout not found'));
-          }
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 600),
+        child: Scaffold(
+          body: entriesAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Center(child: Text('Error: $e')),
+            data: (entries) {
+              final entry = entries.where((e) => e.id == date).firstOrNull;
+              if (entry == null) {
+                return const Center(child: Text('Workout not found'));
+              }
 
-          return CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                pinned: true,
-                expandedHeight: 120,
-                flexibleSpace: FlexibleSpaceBar(
-                  title: Text(entry.day ?? entry.date),
-                  background: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppTheme.primaryGreenDark.withValues(alpha: 0.3),
-                          AppTheme.surface,
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
+              return CustomScrollView(
+                slivers: [
+                  SliverAppBar(
+                    pinned: true,
+                    expandedHeight: 120,
+                    flexibleSpace: FlexibleSpaceBar(
+                      title: Text(entry.day ?? entry.date),
+                      background: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppTheme.primaryGreenDark.withValues(alpha: 0.3),
+                              AppTheme.surface,
+                            ],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.all(16),
-                sliver: SliverList.list(
-                  children: [
-                    if (entry.notes != null) ...[
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppTheme.cardHighlight,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border(
-                            left: BorderSide(
-                              color: AppTheme.primaryGreen.withValues(
-                                alpha: 0.5,
+                  SliverPadding(
+                    padding: const EdgeInsets.all(16),
+                    sliver: SliverList.list(
+                      children: [
+                        if (entry.notes != null) ...[
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.cardHighlight,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border(
+                                left: BorderSide(
+                                  color: AppTheme.primaryGreen.withValues(
+                                    alpha: 0.5,
+                                  ),
+                                  width: 3,
+                                ),
                               ),
-                              width: 3,
+                            ),
+                            child: Text(
+                              entry.notes!,
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    color: AppTheme.textSecondary,
+                                    fontStyle: FontStyle.italic,
+                                  ),
                             ),
                           ),
-                        ),
-                        child: Text(
-                          entry.notes!,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: AppTheme.textSecondary,
-                                fontStyle: FontStyle.italic,
-                              ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                    // Summary chips
-                    Row(
-                      children: [
-                        _SummaryChip(
-                          label: '${entry.totalExercises} exercises',
-                          color: AppTheme.primaryGreen,
-                        ),
-                        const SizedBox(width: 8),
-                        _SummaryChip(
-                          label: '${entry.totalSets} sets',
-                          color: AppTheme.textSecondary,
-                        ),
-                        if (entry.type.isNotEmpty) ...[
-                          const SizedBox(width: 8),
-                          _SummaryChip(
-                            label: entry.type,
-                            color: AppTheme.primaryGreen,
-                          ),
+                          const SizedBox(height: 16),
                         ],
+                        // Summary chips
+                        Row(
+                          children: [
+                            _SummaryChip(
+                              label: '${entry.totalExercises} exercises',
+                              color: AppTheme.primaryGreen,
+                            ),
+                            const SizedBox(width: 8),
+                            _SummaryChip(
+                              label: '${entry.totalSets} sets',
+                              color: AppTheme.textSecondary,
+                            ),
+                            if (entry.type.isNotEmpty) ...[
+                              const SizedBox(width: 8),
+                              _SummaryChip(
+                                label: entry.type,
+                                color: AppTheme.primaryGreen,
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        for (int i = 0; i < entry.exercises.length; i++)
+                          ExerciseTile(
+                                exercise: entry.exercises[i],
+                                index: i + 1,
+                              )
+                              .animate()
+                              .fadeIn(
+                                delay: Duration(milliseconds: i * 60),
+                                duration: 300.ms,
+                              )
+                              .slideY(
+                                begin: 0.05,
+                                end: 0,
+                                delay: Duration(milliseconds: i * 60),
+                                duration: 300.ms,
+                              ),
                       ],
                     ),
-                    const SizedBox(height: 20),
-                    for (int i = 0; i < entry.exercises.length; i++)
-                      ExerciseTile(exercise: entry.exercises[i], index: i + 1)
-                          .animate()
-                          .fadeIn(
-                            delay: Duration(milliseconds: i * 60),
-                            duration: 300.ms,
-                          )
-                          .slideY(
-                            begin: 0.05,
-                            end: 0,
-                            delay: Duration(milliseconds: i * 60),
-                            duration: 300.ms,
-                          ),
-                  ],
-                ),
-              ),
-            ],
-          );
-        },
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
       ),
     );
   }
