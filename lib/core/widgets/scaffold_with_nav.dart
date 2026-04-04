@@ -49,6 +49,11 @@ class ScaffoldWithNav extends StatelessWidget {
                   label: 'Program',
                 ),
                 NavigationDestination(
+                  icon: Icon(Icons.restaurant_menu_outlined),
+                  selectedIcon: Icon(Icons.restaurant_menu),
+                  label: 'Meals',
+                ),
+                NavigationDestination(
                   icon: Icon(Icons.person_outline),
                   selectedIcon: Icon(Icons.person),
                   label: 'Profile',

@@ -4,6 +4,7 @@ abstract final class FirestoreConstants {
   static const String workoutsSubcollection = 'workouts';
   static const String prsSubcollection = 'prs';
   static const String agentConfigSubcollection = 'agent_config';
+  static const String mealPlanSubcollection = 'meal_plan';
 }
 
 abstract final class MessageStatus {

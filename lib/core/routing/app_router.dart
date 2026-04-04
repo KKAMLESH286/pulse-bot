@@ -7,6 +7,7 @@ import 'package:track_me/features/workout/presentation/screens/history_screen.da
 import 'package:track_me/features/workout/presentation/screens/workout_detail_screen.dart';
 import 'package:track_me/features/personal_records/presentation/screens/pr_screen.dart';
 import 'package:track_me/features/program/presentation/screens/program_screen.dart';
+import 'package:track_me/features/meal_plan/presentation/screens/meal_plan_screen.dart';
 import 'package:track_me/features/profile/presentation/screens/profile_screen.dart';
 import 'package:track_me/core/widgets/scaffold_with_nav.dart';
 import 'route_names.dart';
@@ -65,6 +66,14 @@ final appRouter = GoRouter(
             GoRoute(
               path: RouteNames.program,
               builder: (context, state) => const ProgramScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: RouteNames.mealPlan,
+              builder: (context, state) => const MealPlanScreen(),
             ),
           ],
         ),
