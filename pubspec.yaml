@@ -32,7 +32,6 @@ dependencies:
   shimmer: ^3.0.0
   flutter_native_splash: ^2.4.5
   file_picker: ^8.1.6
-  web: ^1.1.1
 
 dev_dependencies:
   flutter_test:

@@ -1,14 +1,11 @@
-import 'dart:convert';
-import 'dart:ui_web' as ui_web;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timeago/timeago.dart' as timeago;
-import 'package:web/web.dart' as web;
 
 import 'package:track_me/core/theme/app_theme.dart';
 import 'package:track_me/core/widgets/empty_state_widget.dart';
 import '../providers/meal_plan_provider.dart';
+import '../widgets/html_renderer.dart' as renderer;
 
 class MealPlanScreen extends ConsumerStatefulWidget {
   const MealPlanScreen({super.key});
@@ -21,27 +18,10 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
   String? _currentViewType;
   String? _loadedHtml;
 
-  void _ensureIframe(String htmlContent) {
+  void _ensureView(String htmlContent) {
     if (_loadedHtml == htmlContent) return;
     _loadedHtml = htmlContent;
-
-    final viewType = 'meal-plan-${DateTime.now().millisecondsSinceEpoch}';
-    _currentViewType = viewType;
-
-    ui_web.platformViewRegistry.registerViewFactory(viewType, (int viewId) {
-      final dataUrl =
-          'data:text/html;charset=utf-8;base64,${base64Encode(utf8.encode(htmlContent))}';
-
-      final iframe =
-          web.document.createElement('iframe') as web.HTMLIFrameElement
-            ..src = dataUrl
-            ..style.border = 'none'
-            ..style.width = '100%'
-            ..style.height = '100%';
-
-      return iframe;
-    });
-
+    _currentViewType = renderer.registerHtmlView(htmlContent);
     setState(() {});
   }
 
@@ -85,14 +65,17 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
                 );
               }
 
-              _ensureIframe(mealPlan.htmlContent);
+              _ensureView(mealPlan.htmlContent);
 
               return Column(
                 children: [
                   _buildHeader(mealPlan.fileName, mealPlan.updatedAt),
                   Expanded(
                     child: _currentViewType != null
-                        ? HtmlElementView(viewType: _currentViewType!)
+                        ? renderer.buildHtmlRenderer(
+                            mealPlan.htmlContent,
+                            _currentViewType!,
+                          )
                         : const SizedBox.shrink(),
                   ),
                 ],
