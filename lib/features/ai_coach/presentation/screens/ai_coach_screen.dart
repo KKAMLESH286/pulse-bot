@@ -8,6 +8,8 @@ import 'package:track_me/features/ai_coach/presentation/providers/chat_provider.
 import 'package:track_me/features/ai_coach/presentation/widgets/chat_input_widget.dart';
 import 'package:track_me/features/ai_coach/presentation/widgets/message_bubble_widget.dart';
 import 'package:track_me/features/ai_coach/presentation/widgets/typing_indicator_widget.dart';
+import 'package:track_me/features/streak/presentation/widgets/streak_card_widget.dart'
+    show StreakHeader;
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key});
@@ -43,7 +45,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     return Column(
       children: [
-        // Custom AppBar
+        // Custom AppBar with streak stats
         _buildAppBar(context),
         Expanded(
           child: messagesAsync.when(
@@ -94,10 +96,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   Widget _buildAppBar(BuildContext context) {
-    return AppBar(
-      titleSpacing: 16,
-      centerTitle: false,
-      title: Row(
+    return Container(
+      color: AppTheme.surface,
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + 8,
+        left: 16,
+        right: 16,
+        bottom: 10,
+      ),
+      child: Row(
         children: [
           // Bot avatar with online indicator
           Stack(
@@ -133,6 +140,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               Text('AI Coach', style: Theme.of(context).textTheme.labelSmall),
             ],
           ),
+          const Spacer(),
+          const StreakHeader(),
         ],
       ),
     );
